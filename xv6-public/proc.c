@@ -89,6 +89,9 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
 
+  p->tainted = 0;
+
+
   release(&ptable.lock);
 
   // Allocate kernel stack.
@@ -198,6 +201,8 @@ fork(void)
   }
   np->sz = curproc->sz;
   np->parent = curproc;
+
+  np->tainted = curproc->tainted; 
   *np->tf = *curproc->tf;
 
   // Clear %eax so that fork returns 0 in the child.
