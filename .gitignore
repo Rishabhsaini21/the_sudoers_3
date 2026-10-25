@@ -27,3 +27,6 @@ qemu.log
 .idea/
 *~
 *.swp
+
+._*
+.DS_Store

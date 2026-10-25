@@ -229,6 +229,7 @@ iupdate(struct inode *ip)
   dip->major = ip->major;
   dip->minor = ip->minor;
   dip->nlink = ip->nlink;
+  dip->untrusted = ip->untrusted;
   dip->size = ip->size;
   memmove(dip->addrs, ip->addrs, sizeof(ip->addrs));
   log_write(bp);
@@ -302,6 +303,7 @@ ilock(struct inode *ip)
     ip->major = dip->major;
     ip->minor = dip->minor;
     ip->nlink = dip->nlink;
+    ip->untrusted = dip->untrusted;
     ip->size = dip->size;
     memmove(ip->addrs, dip->addrs, sizeof(ip->addrs));
     brelse(bp);
@@ -340,6 +342,7 @@ iput(struct inode *ip)
       // inode has no links and no other references: truncate and free.
       itrunc(ip);
       ip->type = 0;
+      ip->untrusted = 0;
       iupdate(ip);
       ip->valid = 0;
     }
