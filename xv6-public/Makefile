@@ -185,7 +185,8 @@ UPROGS=\
 	_hello_test\
 
 fs.img: mkfs README $(UPROGS)
-	./mkfs fs.img README $(UPROGS)
+# 	./mkfs fs.img README $(UPROGS)
+	./mkfs fs.img README $(UPROGS) --safe _cat _ls _echo
 
 -include *.d
 

@@ -67,8 +67,12 @@ xint(uint x)
 int
 main(int argc, char *argv[])
 {
+  // int i, cc, fd;
+  // uint rootino, inum, off;
   int i, cc, fd;
+  int insafe = 0;               // set once "--safe" is seen
   uint rootino, inum, off;
+  uint safeino;                 // inode number of /safe
   struct dirent de;
   char buf[BSIZE];
   struct dinode din;
@@ -81,7 +85,7 @@ main(int argc, char *argv[])
     exit(1);
   }
 
-  assert((BSIZE % sizeof(struct dinode)) == 0);
+  // assert((BSIZE % sizeof(struct dinode)) == 0);
   assert((BSIZE % sizeof(struct dirent)) == 0);
 
   fsfd = open(argv[1], O_RDWR|O_CREAT|O_TRUNC, 0666);
@@ -127,7 +131,25 @@ main(int argc, char *argv[])
   strcpy(de.name, "..");
   iappend(rootino, &de, sizeof(de));
 
+  safeino = ialloc(T_DIR);
+
+  bzero(&de, sizeof(de));
+  de.inum = xshort(safeino);
+  strcpy(de.name, ".");
+  iappend(safeino, &de, sizeof(de));
+
+  bzero(&de, sizeof(de));
+  de.inum = xshort(rootino);
+  strcpy(de.name, "..");
+  iappend(safeino, &de, sizeof(de));
+
+  bzero(&de, sizeof(de));
+  de.inum = xshort(safeino);
+  strcpy(de.name, "safe");
+  iappend(rootino, &de, sizeof(de));
+
   for(i = 2; i < argc; i++){
+    if(strcmp(argv[i], "--safe") == 0){ insafe = 1; continue; }
     assert(index(argv[i], '/') == 0);
 
     if((fd = open(argv[i], 0)) < 0){
@@ -147,8 +169,8 @@ main(int argc, char *argv[])
     bzero(&de, sizeof(de));
     de.inum = xshort(inum);
     strncpy(de.name, argv[i], DIRSIZ);
-    iappend(rootino, &de, sizeof(de));
-
+    // iappend(rootino, &de, sizeof(de));
+    iappend(insafe ? safeino : rootino, &de, sizeof(de));
     while((cc = read(fd, buf, sizeof(buf))) > 0)
       iappend(inum, buf, cc);
 
@@ -163,6 +185,12 @@ main(int argc, char *argv[])
   winode(rootino, &din);
 
   balloc(freeblock);
+  
+  rinode(safeino, &din);
+  off = xint(din.size);
+  off = ((off/BSIZE) + 1) * BSIZE;
+  din.size = xint(off);
+  winode(safeino, &din);
 
   exit(0);
 }
