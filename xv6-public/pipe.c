@@ -17,6 +17,7 @@ struct pipe {
   uint nwrite;    // number of bytes written
   int readopen;   // read fd is still open
   int writeopen;  // write fd is still open
+  int tainted;    // whether the pipe has been tainted
 };
 
 int
@@ -34,6 +35,7 @@ pipealloc(struct file **f0, struct file **f1)
   p->writeopen = 1;
   p->nwrite = 0;
   p->nread = 0;
+  p->tainted = 0;
   initlock(&p->lock, "pipe");
   (*f0)->type = FD_PIPE;
   (*f0)->readable = 1;
@@ -81,6 +83,8 @@ pipewrite(struct pipe *p, char *addr, int n)
   int i;
 
   acquire(&p->lock);
+  if(n > 0 && myproc()->tainted)
+    p->tainted = 1;
   for(i = 0; i < n; i++){
     while(p->nwrite == p->nread + PIPESIZE){  //DOC: pipewrite-full
       if(p->readopen == 0 || myproc()->killed){
@@ -115,6 +119,8 @@ piperead(struct pipe *p, char *addr, int n)
       break;
     addr[i] = p->data[p->nread++ % PIPESIZE];
   }
+  if(i > 0 && p->tainted)
+    myproc()->tainted = 1;  
   wakeup(&p->nwrite);  //DOC: piperead-wakeup
   release(&p->lock);
   return i;
