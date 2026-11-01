@@ -5,6 +5,9 @@
 #include "types.h"
 #include "defs.h"
 #include "param.h"
+#include "mmu.h"
+#include "proc.h"
+#include "stat.h"
 #include "fs.h"
 #include "spinlock.h"
 #include "sleeplock.h"
@@ -104,8 +107,11 @@ fileread(struct file *f, char *addr, int n)
     return piperead(f->pipe, addr, n);
   if(f->type == FD_INODE){
     ilock(f->ip);
-    if((r = readi(f->ip, addr, f->off, n)) > 0)
+    if((r = readi(f->ip, addr, f->off, n)) > 0){
       f->off += r;
+      if(f->ip->untrusted)
+        myproc()->tainted = 1;
+    }
     iunlock(f->ip);
     return r;
   }
