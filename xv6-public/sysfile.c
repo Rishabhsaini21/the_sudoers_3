@@ -442,3 +442,30 @@ sys_pipe(void)
   fd[1] = fd1;
   return 0;
 }
+
+int
+sys_marktaint(void)
+{
+  char *path;
+  struct inode *ip;
+
+  if(argstr(0, &path) < 0)
+    return -1;
+  begin_op();
+  if((ip = namei(path)) == 0){
+    end_op();
+    return -1;
+  }
+  ilock(ip);
+  ip->untrusted = 1;
+  iupdate(ip);
+  iunlockput(ip);
+  end_op();
+  return 0;
+}
+
+int
+sys_istainted(void)
+{
+  return myproc()->tainted;
+}
