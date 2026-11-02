@@ -7,6 +7,21 @@
 #include "x86.h"
 #include "elf.h"
 
+
+static int
+in_safe(char *p)
+{
+  char *q;
+
+  if(strncmp(p, "/safe/", 6) != 0)       // relative paths refused too
+    return 0;
+  for(q = p; *q; q++)                    // reject any ".." component
+    if(q[0] == '.' && q[1] == '.' && q[-1] == '/' && (q[2] == '/' || q[2] == 0))
+      return 0;
+  return 1;
+}
+
+
 int
 exec(char *path, char **argv)
 {
@@ -19,6 +34,12 @@ exec(char *path, char **argv)
   pde_t *pgdir, *oldpgdir;
   struct proc *curproc = myproc();
 
+  if(curproc->tainted && !in_safe(path)){
+    cprintf("taint: exec of %s refused for pid %d\n", path, curproc->pid);
+    return -1;
+  }
+
+
   begin_op();
 
   if((ip = namei(path)) == 0){
@@ -27,6 +48,11 @@ exec(char *path, char **argv)
     return -1;
   }
   ilock(ip);
+
+  if(ip->untrusted)
+    curproc->tainted = 1;
+  
+    
   pgdir = 0;
 
   // Check ELF header
