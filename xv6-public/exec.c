@@ -47,9 +47,9 @@ exec(char *path, char **argv)
     cprintf("exec: fail\n");
     return -1;
   }
-  ilock(ip);
 
-  if(ip->untrusted)
+  ilock(ip);
+  if(isuntrusted(ip))
     curproc->tainted = 1;
   
     
