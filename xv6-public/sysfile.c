@@ -121,6 +121,11 @@ sys_link(void)
   char name[DIRSIZ], *new, *old;
   struct inode *dp, *ip;
 
+  if(myproc()->tainted){                 // NEW
+    cprintf("taint: link refused for pid %d\n", myproc()->pid);
+    return -1;
+  }
+
   if(argstr(0, &old) < 0 || argstr(1, &new) < 0)
     return -1;
 
@@ -188,6 +193,11 @@ sys_unlink(void)
   struct dirent de;
   char name[DIRSIZ], *path;
   uint off;
+
+  if(myproc()->tainted){                 // NEW
+    cprintf("taint: unlink refused for pid %d\n", myproc()->pid);
+    return -1;
+  }
 
   if(argstr(0, &path) < 0)
     return -1;
@@ -264,6 +274,7 @@ create(char *path, short type, short major, short minor)
   ip->major = major;
   ip->minor = minor;
   ip->nlink = 1;
+  ip->untrusted = myproc()->tainted;     // NEW: tainted process cannot mint clean file
   iupdate(ip);
 
   if(type == T_DIR){  // Create . and .. entries.
