@@ -130,6 +130,20 @@ filewrite(struct file *f, char *addr, int n)
   if(f->type == FD_PIPE)
     return pipewrite(f->pipe, addr, n);
   if(f->type == FD_INODE){
+    {
+      int t, ut;                         // NEW: write-down rule
+      if(myproc()->tainted){
+        ilock(f->ip);
+        t = f->ip->type;
+        ut = f->ip->untrusted;
+        iunlock(f->ip);
+        if(t == T_FILE && !ut){          // only regular files; console is T_DEV
+          cprintf("taint: write to clean file refused for pid %d\n", myproc()->pid);
+          return -1;
+        }
+      }
+    }
+
     // write a few blocks at a time to avoid exceeding
     // the maximum log transaction size, including
     // i-node, indirect block, allocation blocks,
@@ -160,4 +174,3 @@ filewrite(struct file *f, char *addr, int n)
   }
   panic("filewrite");
 }
-
